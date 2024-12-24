@@ -1,0 +1,42 @@
+#pragma once
+#include <memory>
+#include "scene/sceneBuffer.hpp"
+#include "wasm/canvasBuffer.hpp"
+
+class SceneBuffer;
+
+class Game {
+private:
+    std::unique_ptr<CanvasBuffer> videoBuffer;
+    std::unique_ptr<CanvasBuffer> webcamBuffer;
+    std::unique_ptr<SceneBuffer> sceneBuffer;
+
+public:
+    Game();
+    virtual ~Game() = default;
+    void init(int width, int height);
+    void restart();
+    void play();
+    void pause();
+    void setLevel(int level);
+    void renderFrame(float deltaTime);
+
+    void initVideoBuffers(int width, int height);
+    void initSceneBuffer(int width, int height);
+    void onUserPressedKey(char key);
+
+    void setBuffers(std::unique_ptr<SceneBuffer> scene, 
+                   std::unique_ptr<CanvasBuffer> video, 
+                   std::unique_ptr<CanvasBuffer> webcam);
+    
+    // Retorna referência direta aos buffers
+    CanvasBuffer* getVideoBuffer() { return videoBuffer.get(); }
+    CanvasBuffer* getWebcamBuffer() { return webcamBuffer.get(); }
+    SceneBuffer* getSceneBuffer() { return sceneBuffer.get(); }
+    
+    void processSceneBuffer(float deltaTime);
+    void processWebcamBuffer(float deltaTime);
+    void processVideoBuffer(float deltaTime);    
+
+    void updatePixelsFromBuffer(const uint8_t* sourceBuffer, int sourceWidth, int sourceHeight);
+};

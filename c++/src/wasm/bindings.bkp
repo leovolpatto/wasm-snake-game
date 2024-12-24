@@ -1,0 +1,179 @@
+#include <memory>
+#include <cstring>
+#include <cmath>
+#include "wasm/bindings.hpp"
+#include "js/helpers.hpp"
+#include "scene/sceneBuffer.hpp"
+#include "scene/sceneObject.hpp"
+#include "wasm/canvasBuffer.hpp"
+#include "movement/circular.hpp"
+#include "movement/linear.hpp"
+
+std::unique_ptr<CanvasBuffer> videoBuffer = nullptr;
+std::unique_ptr<CanvasBuffer> webcamBuffer = nullptr;
+std::unique_ptr<SceneBuffer> sceneBuffer = nullptr;
+BufferInfo sceneBufferInfo;
+BufferInfo webcamBufferInfo;
+BufferInfo videoBufferInfo;
+
+extern "C"
+{
+    EMSCRIPTEN_KEEPALIVE
+    void initVideoBuffers(int width, int height)
+    {
+        videoBuffer = std::make_unique<CanvasBuffer>(width, height);
+        webcamBuffer = std::make_unique<CanvasBuffer>(width, height);
+
+        std::string message = "Video buffers initialized with dimensions: " +
+                              std::to_string(width) + "x" + std::to_string(height);
+        consoleLog(message.c_str());
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    void initSceneBuffer(int width, int height)
+    {
+        sceneBuffer = std::make_unique<SceneBuffer>(width, height);
+
+        auto obj = std::make_unique<SceneObject>(50, 50, 0, 0);
+        PixelValue *buffer = obj->getBuffer()->getBufferWritable();
+        int objWidth = obj->getBuffer()->getWidth();
+        int objHeight = obj->getBuffer()->getHeight();
+
+        auto circularMove = std::make_unique<CircularMovement>(Point(100,100), 100, 1);
+        obj->setMovement(std::move(circularMove));
+
+        for (int i = 0; i < objWidth * objHeight * 4; i += 4)
+        {
+            buffer[i] = 255;     // R
+            buffer[i + 1] = 0; // G
+            buffer[i + 2] = 0; // B
+            buffer[i + 3] = 255; // a
+        }
+
+        sceneBuffer->addObject(std::move(obj));
+
+        auto obj2 = std::make_unique<SceneObject>(20, 20, 0, 0);
+        PixelValue *buffer2 = obj2->getBuffer()->getBufferWritable();
+        auto linearMovement = std::make_unique<LinearMovement>(Point(800,0), 80);
+        obj2->setMovement(std::move(linearMovement));
+        int objWidth2 = obj2->getBuffer()->getWidth();
+        int objHeight2 = obj2->getBuffer()->getHeight();        
+        for (int i = 0; i < objWidth2 * objHeight2 * 4; i += 4)
+        {
+            buffer2[i] = 0;     // R
+            buffer2[i + 1] = 255; // G
+            buffer2[i + 2] = 0; // B
+            buffer2[i + 3] = 255; // a
+        }
+        sceneBuffer->addObject(std::move(obj2));
+
+        std::string message = "Scene buffer initialized with dimensions: " +
+                              std::to_string(width) + "x" + std::to_string(height);
+        consoleLog(message.c_str());
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    BufferInfo *getSceneBufferInfo()
+    {
+        if (!sceneBuffer)
+        {
+            return nullptr;
+        }
+
+        sceneBufferInfo = sceneBuffer->getMainBuffer()->getInfo();
+        return &sceneBufferInfo;
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    BufferInfo *getWebcamBufferInfo()
+    {
+        if (!webcamBuffer)
+        {
+            return nullptr;
+        }
+
+        webcamBufferInfo = webcamBuffer->getInfo();
+        return &webcamBufferInfo;
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    BufferInfo *getVideoBufferInfo()
+    {
+        if (!videoBuffer)
+        {
+            return nullptr;
+        }
+
+        videoBufferInfo = videoBuffer->getInfo();
+        return &videoBufferInfo;
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    void processSceneBuffer(float deltaTime)
+    {
+        sceneBuffer->render(deltaTime);
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    void processWebcamBuffer(float deltaTime)
+    {
+        if (!webcamBuffer->initialized)
+        {
+            consoleLog("Webcam buffer not initialized");
+            return;
+        }
+
+        videoBuffer->copyFrom(webcamBuffer.get());
+
+        PixelValue *buffer = webcamBuffer->getBufferWritable();
+        int width = webcamBuffer->getWidth();
+        int height = webcamBuffer->getHeight();
+
+        for (int i = 0; i < width * height * 4; i += 4)
+        {
+            buffer[i] = buffer[i];         // R
+            buffer[i + 1] = buffer[i + 1]; // G
+            buffer[i + 2] = buffer[i + 2]; // B
+        }
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    void processVideoBuffer(float deltaTime)
+    {
+        if (!videoBuffer->initialized)
+        {
+            return;
+        }
+
+        static float totalTime = 0.0f; // Acumula o tempo total
+        totalTime += deltaTime;        // Adiciona o tempo desde o último frame
+
+        PixelValue *buffer = videoBuffer->getBufferWritable();
+        int width = videoBuffer->getWidth();
+        int height = videoBuffer->getHeight();
+
+        // Exemplo: Efeito de onda que se move com o tempo
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                int idx = (y * width + x) * 4;
+
+                // Usa o tempo para criar um efeito de onda
+                float wave = sin(x * 0.1f + totalTime * 2.0f) * 128 + 128;
+
+                buffer[idx] = buffer[idx] - static_cast<PixelValue>(wave);         // R
+                buffer[idx + 1] = buffer[idx + 1] - static_cast<PixelValue>(wave); // G
+                buffer[idx + 2] = buffer[idx + 2] - static_cast<PixelValue>(wave); // B
+            }
+        }
+    }
+
+    EMSCRIPTEN_KEEPALIVE
+    void cleanupBuffers()
+    {
+        sceneBuffer = nullptr;
+        webcamBuffer = nullptr;
+        videoBuffer = nullptr;
+    }
+}

@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "outDir": "./public",       // Saída dos arquivos compilados
+    //"module": "esnext",               // Usa módulos modernos
+    "rootDir": "./src",               // Diretório de origem
+    "baseUrl": "./src",               // Base para caminhos relativos  
+    "target": "ES2017",
+    "module": "ES2020",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "allowJs": true,
+    "declaration": true,
+    "strict": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.js"],      // Inclui todos os arquivos TS na pasta src
+  "exclude": ["node_modules"]      // Exclui dependências
+}

@@ -1,0 +1,17 @@
+{
+  "name": "snake-game",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --outfile=./public/bundle.js --format=iife  --log-level=debug --loader:.ts=ts",
+    "watch": "npx tsc --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.2"
+  }
+}

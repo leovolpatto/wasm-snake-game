@@ -1,0 +1,186 @@
+#include <memory>
+#include "scene/sceneBuffer.hpp"
+#include "objects/game.hpp"
+#include "movement/circular.hpp"
+#include "movement/linear.hpp"
+
+Game::Game()
+{
+}
+
+void Game::restart()
+{
+}
+
+void Game::play()
+{
+}
+
+void Game::pause()
+{
+}
+
+void Game::onUserPressedKey(char key){
+
+}
+
+void Game::setBuffers(std::unique_ptr<SceneBuffer> scene,
+                      std::unique_ptr<CanvasBuffer> video,
+                      std::unique_ptr<CanvasBuffer> webcam)
+{
+    sceneBuffer = std::move(scene);
+    videoBuffer = std::move(video);
+    webcamBuffer = std::move(webcam);
+}
+
+
+void Game::initVideoBuffers(int width, int height)
+{
+    videoBuffer = std::make_unique<CanvasBuffer>(width, height);
+    webcamBuffer = std::make_unique<CanvasBuffer>(width, height);
+
+    std::string message = "Video buffers initialized with dimensions: " +
+                          std::to_string(width) + "x" + std::to_string(height);
+    consoleLog(message.c_str());
+}
+
+void Game::initSceneBuffer(int width, int height)
+{
+    this->sceneBuffer = std::make_unique<SceneBuffer>(width, height);
+
+    auto obj = std::make_unique<SceneObject>(50, 50, 0, 0);
+    PixelValue *buffer = obj->getBuffer()->getBufferWritable();
+    int objWidth = obj->getBuffer()->getWidth();
+    int objHeight = obj->getBuffer()->getHeight();
+
+    auto circularMove = std::make_unique<CircularMovement>(Point(100, 100), 100, 1);
+    obj->setMovement(std::move(circularMove));
+
+    for (int i = 0; i < objWidth * objHeight * 4; i += 4)
+    {
+        buffer[i] = 255;     // R
+        buffer[i + 1] = 0;   // G
+        buffer[i + 2] = 0;   // B
+        buffer[i + 3] = 255; // a
+    }
+
+    sceneBuffer->addObject(std::move(obj));
+
+    auto obj2 = std::make_unique<SceneObject>(20, 20, 0, 0);
+    PixelValue *buffer2 = obj2->getBuffer()->getBufferWritable();
+    auto linearMovement = std::make_unique<LinearMovement>(Point(800, 0), 80);
+    obj2->setMovement(std::move(linearMovement));
+    int objWidth2 = obj2->getBuffer()->getWidth();
+    int objHeight2 = obj2->getBuffer()->getHeight();
+    for (int i = 0; i < objWidth2 * objHeight2 * 4; i += 4)
+    {
+        buffer2[i] = 0;       // R
+        buffer2[i + 1] = 255; // G
+        buffer2[i + 2] = 0;   // B
+        buffer2[i + 3] = 255; // a
+    }
+    sceneBuffer->addObject(std::move(obj2));
+
+    std::string message = "Scene buffer initialized with dimensions: " +
+                          std::to_string(width) + "x" + std::to_string(height);
+    consoleLog(message.c_str());
+}
+
+void Game::processSceneBuffer(float deltaTime)
+{
+    this->sceneBuffer->render(deltaTime);
+}
+
+void Game::processWebcamBuffer(float deltaTime)
+{
+    videoBuffer->copyFrom(webcamBuffer.get());
+
+    PixelValue *buffer = webcamBuffer->getBufferWritable();
+    int width = webcamBuffer->getWidth();
+    int height = webcamBuffer->getHeight();
+
+    for (int i = 0; i < width * height * 4; i += 4)
+    {
+        buffer[i] = buffer[i];         // R
+        buffer[i + 1] = buffer[i + 1]; // G
+        buffer[i + 2] = buffer[i + 2]; // B
+    }
+}
+
+void Game::processVideoBuffer(float deltaTime)
+{
+    static float totalTime = 0.0f; // Acumula o tempo total
+    totalTime += deltaTime;        // Adiciona o tempo desde o último frame
+
+    PixelValue *buffer = videoBuffer->getBufferWritable();
+    int width = videoBuffer->getWidth();
+    int height = videoBuffer->getHeight();
+
+    // Exemplo: Efeito de onda que se move com o tempo
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            int idx = (y * width + x) * 4;
+
+            // Usa o tempo para criar um efeito de onda
+            float wave = sin(x * 0.1f + totalTime * 2.0f) * 128 + 128;
+
+            buffer[idx] = buffer[idx] - static_cast<PixelValue>(wave);         // R
+            buffer[idx + 1] = buffer[idx + 1] - static_cast<PixelValue>(wave); // G
+            buffer[idx + 2] = buffer[idx + 2] - static_cast<PixelValue>(wave); // B
+        }
+    }
+}
+
+void Game::renderFrame(float deltaTime)
+{
+}
+
+void Game::updatePixelsFromBuffer(const uint8_t *backupBuffer, int sourceWidth, int sourceHeight)
+{
+
+    /*
+
+   int srcCenterX = 0;//sourceWidth / 2;
+   int srcCenterY = 0;//sourceHeight / 2;
+
+   for (int y = 0; y < height; y++) {
+       for (int x = 0; x < width; x++) {
+           int srcX = x + srcCenterX - width/2;
+           int srcY = y + srcCenterY - height/2;
+
+           if(srcX >= 0 && srcX < sourceWidth && srcY >= 0 && srcY < sourceHeight) {
+               int srcIdx = (srcY * sourceWidth + srcX) * 4;
+               pixels.setPixel(y, x,
+                   sourceBuffer[srcIdx],
+                   sourceBuffer[srcIdx + 1],
+                   sourceBuffer[srcIdx + 2],
+                   sourceBuffer[srcIdx + 3]
+               );
+           }
+       }
+   }
+   */
+    /*
+    int srcCenterX = 0;//sourceWidth / 2;
+    int srcCenterY = 0;//sourceHeight / 2;
+
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            int srcX = x + srcCenterX - width/2;
+            int srcY = y + srcCenterY - height/2;
+
+            if(srcX >= 0 && srcX < sourceWidth && srcY >= 0 && srcY < sourceHeight) {
+                int srcIdx = (srcY * sourceWidth + srcX) * 4;
+                pixels.setPixel(y, x,
+                    sourceBuffer[srcIdx],
+                    sourceBuffer[srcIdx + 1],
+                    sourceBuffer[srcIdx + 2],
+                    sourceBuffer[srcIdx + 3]
+                );
+            }
+        }
+    }
+    */
+}

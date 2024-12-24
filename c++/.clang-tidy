@@ -1,0 +1,7 @@
+Checks: 
+  performance-*,          # Otimizações de desempenho
+  modernize-*,            # Sugestões para padrões modernos de C++
+  cppcoreguidelines-*,
+  bugprone-*,
+WarningsAsErrors: ''      # Torna todas as verificações obrigatórias
+HeaderFilterRegex: '.*'   # Inclui todos os arquivos para análise

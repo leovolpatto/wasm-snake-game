@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site com TypeScript</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Site com TypeScript</h1>
+  <section class="conteudo">
+    <canvas class="game-canvas" id="game-canvas" width="900" height="500">
+
+    </canvas>
+  </section>
+
+  <section class="debug">
+    <div class="">
+      <!-- <video id="video"></video> -->
+      <p>Camera RAW from and to WASM</p>
+      <canvas class="cam-view" id="cam-raw-view" >
+
+      </canvas> 
+    </div>
+
+    <div class="">
+      <p>Camera processed in WASM</p>
+      <canvas class="canvas-cam-debug" id="cam-processed-view">
+
+      </canvas>      
+    </div>
+  </section>
+
+  <script src="./snake.js"></script>
+  <script src="./bundle.js"></script>
+</body>
+</html>
