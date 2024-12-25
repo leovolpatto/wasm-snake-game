@@ -4,12 +4,11 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/include",
-                // "${workspaceFolder}/src",
-                "/home/leo/leo/technical-ecstasy/emsdk/upstream/lib/clang/20/include",
-                "/home/leo/leo/technical-ecstasy/emsdk/upstream/emscripten/cache/sysroot/include"
+                "/home/leo/emsdk/upstream/lib/clang/20/include",
+                "/home/leo/emsdk/upstream/emscripten/cache/sysroot/include"
             ],
             "defines": [],
-            "compilerPath": "/home/leo/leo/technical-ecstasy/emsdk/upstream/emscripten/em++",
+            "compilerPath": "/home/leo/emsdk/upstream/emscripten/em++",
             "cStandard": "c17",
             "cppStandard": "c++17",
             "intelliSenseMode": "clang-x64"

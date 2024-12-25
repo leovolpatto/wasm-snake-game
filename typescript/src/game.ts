@@ -1,14 +1,17 @@
+import { IInputObserver } from "input-observer.interface";
+import { KeyboardInput } from "keyboard";
 import { SceneProcessor } from "scene-processor";
+import { TouchInput } from "touch";
 import { VideoEffectsProcessor } from "video-effects-processor";
 import { InputKeys, Wasm } from "wasm.memory";
+import { Webcam } from "webcam";
 import { WebcamProcessor } from "webcam-processor";
 
-export class Game {
+export class Game implements IInputObserver {
   private wasm!: Wasm;
   private canvasRawVideo: HTMLCanvasElement;
   private canvasEffectsVideo: HTMLCanvasElement;
   private canvasScene: HTMLCanvasElement;
-  //private scene!: SceneController;
 
   private webCamProcessor!: WebcamProcessor;
   private videoEffectsProcessor!: VideoEffectsProcessor;
@@ -30,27 +33,50 @@ export class Game {
     this.wasm = new Wasm();
   }
 
-  private async init(): Promise<void> {
-    document.onkeydown = (evt: KeyboardEvent) => {
-      switch (evt.code) {
-        case "ArrowUp":
-          this.wasm.wasmModule?._processKeyPressed(InputKeys.Up);
-          break;
-        case "ArrowDown":
-          this.wasm.wasmModule?._processKeyPressed(InputKeys.Down);
-          break;
-        case "ArrowLeft":
-          this.wasm.wasmModule?._processKeyPressed(InputKeys.Left);
-          break;
-        case "ArrowRight":
-          this.wasm.wasmModule?._processKeyPressed(InputKeys.Right);
-          break;
-        case "Space":
-          this.wasm.wasmModule?._processKeyPressed(InputKeys.Space);
-          break;
-      }
-    };
+  public right(): void {
+    this.wasm.wasmModule?._processKeyPressed(InputKeys.Right);
+  }
 
+  public left(): void {
+    this.wasm.wasmModule?._processKeyPressed(InputKeys.Left);
+  }
+
+  public up(): void {
+    this.wasm.wasmModule?._processKeyPressed(InputKeys.Up);
+  }
+
+  public down(): void {
+    this.wasm.wasmModule?._processKeyPressed(InputKeys.Down);
+  }
+
+  public pause(): void {
+    this.wasm.wasmModule?._processKeyPressed(InputKeys.Space);
+  }
+
+  private initInputs(): void {
+    const keyboard: KeyboardInput = new KeyboardInput(this);
+    const touch: TouchInput = new TouchInput(this);
+
+    keyboard.start();
+    touch.start();
+  }
+
+  private async initCamera(): Promise<HTMLVideoElement> {
+    console.log('Requesting camera w: ' + this.canvasRawVideo.width + " h: " + this.canvasRawVideo.height);
+
+    const stream = await Webcam.getMediaStream(this.canvasRawVideo.width);
+
+    const video = document.createElement("video");
+    video.hidden = true;
+    video.srcObject = stream;
+    video.width = this.canvasRawVideo.width;
+    video.height = this.canvasRawVideo.height;
+    await video.play();
+
+    return video;
+  }
+
+  private initWasmBuffers(): void{
     this.wasm.wasmModule?._initVideoBuffers(
       this.canvasRawVideo.width,
       this.canvasRawVideo.height
@@ -60,33 +86,22 @@ export class Game {
       900, //this.canvasScene.width,
       500 //this.canvasScene.height
     );
+  }
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        width: {
-          exact: this.canvasRawVideo.width,
-        },
-        height: {
-          exact: this.canvasRawVideo.height,
-        },
-        frameRate: 80,
-      },
-    });
-
-    const video = document.createElement("video");
-    video.hidden = true;
-    video.srcObject = stream;
-    video.width = this.canvasRawVideo.width;
-    video.height = this.canvasRawVideo.height;
-    await video.play();
-
-    // Iniciar processamento
+  private initVideoProcessors(): void{
     this.webCamProcessor = new WebcamProcessor(this.canvasRawVideo, this.wasm);
     this.videoEffectsProcessor = new VideoEffectsProcessor(
       this.canvasEffectsVideo,
       this.wasm
     );
     this.sceneProcessor = new SceneProcessor(this.canvasScene, this.wasm);
+  }
+
+  private async init(): Promise<void> {
+    this.initInputs();
+    const video: HTMLVideoElement = await this.initCamera();
+    this.initWasmBuffers();
+    this.initVideoProcessors();
 
     this.startProcessingVideo(video);
   }
@@ -108,15 +123,10 @@ export class Game {
     requestAnimationFrame(animate);
   }
 
-  private async setScene(): Promise<void> {
-    //this.scene = new SceneController(this.wasm, 800,500)
-  }
-
   public async play(): Promise<void> {
     try {
       await this.wasm.initWasm();
       await this.init();
-      await this.setScene();
     } catch (error) {
       console.error("Error initializing game:", error);
     }

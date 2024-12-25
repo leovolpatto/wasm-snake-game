@@ -71,9 +71,4 @@ export class Wasm{
     private copyToWasmMemory(data: Uint8Array, ptr: number): void {
         this.wasmMemory!.u8.set(data, ptr);
     }
-
-    // Método auxiliar para ler dados da memória WASM
-    private readFromWasmMemory(ptr: number, size: number): Uint8Array {
-        return this.wasmMemory!.u8.slice(ptr, ptr + size);
-    }
 }

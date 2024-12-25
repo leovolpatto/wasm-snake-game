@@ -1,5 +1,36 @@
 "use strict";
 (() => {
+  // src/keyboard.ts
+  var KeyboardInput = class {
+    constructor(observer) {
+      this.observer = observer;
+    }
+    start() {
+      this.listenEvents();
+    }
+    listenEvents() {
+      document.onkeydown = (evt) => {
+        switch (evt.code) {
+          case "ArrowUp":
+            this.observer.up();
+            break;
+          case "ArrowDown":
+            this.observer.down();
+            break;
+          case "ArrowLeft":
+            this.observer.left();
+            break;
+          case "ArrowRight":
+            this.observer.right();
+            break;
+          case "Space":
+            this.observer.pause();
+            break;
+        }
+      };
+    }
+  };
+
   // src/scene-processor.ts
   var SceneProcessor = class {
     constructor(canvas, wasm) {
@@ -23,6 +54,53 @@
         bufferInfo.height
       );
       this.ctx.putImageData(processedImageData, 0, 0);
+    }
+  };
+
+  // src/touch.ts
+  var TouchInput = class {
+    constructor(observer) {
+      this.touchStartX = 0;
+      this.touchStartY = 0;
+      this.touchEndX = 0;
+      this.touchEndY = 0;
+      this.observer = observer;
+    }
+    start() {
+      this.listenEvents();
+    }
+    listenEvents() {
+      document.ontouchstart = (evt) => this.handleTouchStart(evt);
+      document.ontouchend = (evt) => this.handleTouchEnd(evt);
+      document.addEventListener("touchmove", function(event) {
+        event.preventDefault();
+      }, { passive: false });
+    }
+    handleTouchStart(event) {
+      this.touchStartX = event.touches[0].clientX;
+      this.touchStartY = event.touches[0].clientY;
+    }
+    handleTouchEnd(event) {
+      this.touchEndX = event.changedTouches[0].clientX;
+      this.touchEndY = event.changedTouches[0].clientY;
+      this.handleSwipe();
+    }
+    handleSwipe() {
+      const deltaX = this.touchEndX - this.touchStartX;
+      const deltaY = this.touchEndY - this.touchStartY;
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        if (deltaX > 0) {
+          this.observer.right();
+        } else {
+          this.observer.left();
+        }
+        return;
+      }
+      if (deltaY > 0) {
+        this.observer.down();
+      } else {
+        this.observer.up();
+      }
     }
   };
 
@@ -96,9 +174,23 @@
     copyToWasmMemory(data, ptr) {
       this.wasmMemory.u8.set(data, ptr);
     }
-    // Método auxiliar para ler dados da memória WASM
-    readFromWasmMemory(ptr, size) {
-      return this.wasmMemory.u8.slice(ptr, ptr + size);
+  };
+
+  // src/webcam.ts
+  var Webcam = class _Webcam {
+    constructor() {
+    }
+    static async getMediaStream(width) {
+      if (_Webcam.stream) {
+        return _Webcam.stream;
+      }
+      _Webcam.stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          frameRate: 80
+        },
+        audio: false
+      });
+      return _Webcam.stream;
     }
   };
 
@@ -110,24 +202,44 @@
       this.ctx = this.canvas.getContext("2d", {
         willReadFrequently: true
       });
+      this.bufferInfo = this.wasm.getWebcamBufferInfo();
+      this.memoryView = new Uint8ClampedArray(
+        this.wasm.wasmMemory.u8.buffer,
+        this.bufferInfo.bufferAddr,
+        this.bufferInfo.bufferSize
+      );
+    }
+    drawWebcamFrameToCanvas(videoElement) {
+      this.ctx.drawImage(videoElement, 0, 0, this.bufferInfo.width, this.bufferInfo.height);
+    }
+    getCanvasCurrentImageData() {
+      const imageData = this.ctx.getImageData(0, 0, this.bufferInfo.width, this.bufferInfo.height);
+      return imageData;
+    }
+    updateWasmMemoryBufferWith(imageData) {
+      this.memoryView.set(imageData.data);
+    }
+    processDataInWasm(deltaTimeSecs) {
+      this.wasm.wasmModule._processWebcamBuffer(deltaTimeSecs);
+    }
+    getProcessedDataFromWasm() {
+      const processedImageData = new ImageData(
+        this.memoryView,
+        this.bufferInfo.width,
+        this.bufferInfo.height
+      );
+      return processedImageData;
+    }
+    drawToCanvas(imageData) {
+      this.ctx.putImageData(imageData, 0, 0);
     }
     processWebcamFrame(videoElement, deltaTimeSecs) {
-      const bufferInfo = this.wasm.getWebcamBufferInfo();
-      this.ctx.drawImage(videoElement, 0, 0, bufferInfo.width, bufferInfo.height);
-      const imageData = this.ctx.getImageData(0, 0, bufferInfo.width, bufferInfo.height);
-      const wasmBuffer = new Uint8ClampedArray(
-        this.wasm.wasmMemory.u8.buffer,
-        bufferInfo.bufferAddr,
-        bufferInfo.bufferSize
-      );
-      wasmBuffer.set(imageData.data);
-      this.wasm.wasmModule._processWebcamBuffer(deltaTimeSecs);
-      const processedImageData = new ImageData(
-        wasmBuffer,
-        bufferInfo.width,
-        bufferInfo.height
-      );
-      this.ctx.putImageData(processedImageData, 0, 0);
+      this.drawWebcamFrameToCanvas(videoElement);
+      const imageData = this.getCanvasCurrentImageData();
+      this.updateWasmMemoryBufferWith(imageData);
+      this.processDataInWasm(deltaTimeSecs);
+      const data = this.getProcessedDataFromWasm();
+      this.drawToCanvas(data);
     }
   };
 
@@ -145,26 +257,39 @@
       );
       this.wasm = new Wasm();
     }
-    async init() {
-      document.onkeydown = (evt) => {
-        switch (evt.code) {
-          case "ArrowUp":
-            this.wasm.wasmModule?._processKeyPressed(0 /* Up */);
-            break;
-          case "ArrowDown":
-            this.wasm.wasmModule?._processKeyPressed(2 /* Down */);
-            break;
-          case "ArrowLeft":
-            this.wasm.wasmModule?._processKeyPressed(3 /* Left */);
-            break;
-          case "ArrowRight":
-            this.wasm.wasmModule?._processKeyPressed(1 /* Right */);
-            break;
-          case "Space":
-            this.wasm.wasmModule?._processKeyPressed(4 /* Space */);
-            break;
-        }
-      };
+    right() {
+      this.wasm.wasmModule?._processKeyPressed(1 /* Right */);
+    }
+    left() {
+      this.wasm.wasmModule?._processKeyPressed(3 /* Left */);
+    }
+    up() {
+      this.wasm.wasmModule?._processKeyPressed(0 /* Up */);
+    }
+    down() {
+      this.wasm.wasmModule?._processKeyPressed(2 /* Down */);
+    }
+    pause() {
+      this.wasm.wasmModule?._processKeyPressed(4 /* Space */);
+    }
+    initInputs() {
+      const keyboard = new KeyboardInput(this);
+      const touch = new TouchInput(this);
+      keyboard.start();
+      touch.start();
+    }
+    async initCamera() {
+      console.log("Requesting camera w: " + this.canvasRawVideo.width + " h: " + this.canvasRawVideo.height);
+      const stream = await Webcam.getMediaStream(this.canvasRawVideo.width);
+      const video = document.createElement("video");
+      video.hidden = true;
+      video.srcObject = stream;
+      video.width = this.canvasRawVideo.width;
+      video.height = this.canvasRawVideo.height;
+      await video.play();
+      return video;
+    }
+    initWasmBuffers() {
       this.wasm.wasmModule?._initVideoBuffers(
         this.canvasRawVideo.width,
         this.canvasRawVideo.height
@@ -175,29 +300,20 @@
         500
         //this.canvasScene.height
       );
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: {
-            exact: this.canvasRawVideo.width
-          },
-          height: {
-            exact: this.canvasRawVideo.height
-          },
-          frameRate: 80
-        }
-      });
-      const video = document.createElement("video");
-      video.hidden = true;
-      video.srcObject = stream;
-      video.width = this.canvasRawVideo.width;
-      video.height = this.canvasRawVideo.height;
-      await video.play();
+    }
+    initVideoProcessors() {
       this.webCamProcessor = new WebcamProcessor(this.canvasRawVideo, this.wasm);
       this.videoEffectsProcessor = new VideoEffectsProcessor(
         this.canvasEffectsVideo,
         this.wasm
       );
       this.sceneProcessor = new SceneProcessor(this.canvasScene, this.wasm);
+    }
+    async init() {
+      this.initInputs();
+      const video = await this.initCamera();
+      this.initWasmBuffers();
+      this.initVideoProcessors();
       this.startProcessingVideo(video);
     }
     startProcessingVideo(videoElement) {
@@ -212,13 +328,10 @@
       };
       requestAnimationFrame(animate);
     }
-    async setScene() {
-    }
     async play() {
       try {
         await this.wasm.initWasm();
         await this.init();
-        await this.setScene();
       } catch (error) {
         console.error("Error initializing game:", error);
       }

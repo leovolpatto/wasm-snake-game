@@ -35,19 +35,16 @@ void CanvasBuffer::copyFrom(const CanvasBuffer *source)
         bufferSize * sizeof(PixelValue));
 }
 
-// Para leitura: retorna ponteiro constante (somente leitura)
 const PixelValue *CanvasBuffer::getBuffer() const
 {
     return buffer.get();
 }
 
-// Para escrita: retorna ponteiro não-constante
 PixelValue *CanvasBuffer::getBufferWritable()
 {
     return buffer.get();
 }
 
-// Para escrita de um pixel específico
 void CanvasBuffer::setPixel(int x, int y, PixelValue r, PixelValue g, PixelValue b, PixelValue a)
 {
     if (x < 0 || x >= width || y < 0 || y >= height)
@@ -62,7 +59,6 @@ void CanvasBuffer::setPixel(int x, int y, PixelValue r, PixelValue g, PixelValue
     buffer[index + 3] = a;
 }
 
-// Para leitura de um pixel específico
 void CanvasBuffer::getPixel(int x, int y, PixelValue &r, PixelValue &g, PixelValue &b, PixelValue &a) const
 {
     if (x < 0 || x >= width || y < 0 || y >= height)
@@ -75,7 +71,6 @@ void CanvasBuffer::getPixel(int x, int y, PixelValue &r, PixelValue &g, PixelVal
     a = buffer[index + 3];
 }
 
-// Para preencher uma região
 void CanvasBuffer::fillRect(int x, int y, int w, int h, PixelValue r, PixelValue g, PixelValue b, PixelValue a)
 {
     for (int i = y; i < y + h && i < height; i++)
@@ -87,7 +82,6 @@ void CanvasBuffer::fillRect(int x, int y, int w, int h, PixelValue r, PixelValue
     }
 }
 
-// Para copiar dados para o buffer
 void CanvasBuffer::copyFromArray(const PixelValue *data, int size)
 {
     int maxSize = width * height * 4;

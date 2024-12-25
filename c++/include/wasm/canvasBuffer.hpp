@@ -28,25 +28,12 @@ public:
     void clear();
 
     void copyFrom(const CanvasBuffer *source);
-
-    // Para leitura: retorna ponteiro constante (somente leitura)
     const PixelValue *getBuffer() const;
-
-    // Para escrita: retorna ponteiro não-constante
     PixelValue *getBufferWritable();
-
-    // Para escrita de um pixel específico
     void setPixel(int x, int y, PixelValue r, PixelValue g, PixelValue b, PixelValue a);
-
-    // Para leitura de um pixel específico
     void getPixel(int x, int y, PixelValue &r, PixelValue &g, PixelValue &b, PixelValue &a) const;
-
-    // Para preencher uma região
     void fillRect(int x, int y, int w, int h, PixelValue r, PixelValue g, PixelValue b, PixelValue a);
-
-    // Para copiar dados para o buffer
     void copyFromArray(const PixelValue *data, int size);
-
     BufferInfo* getInfo();
 
     void copyRect(const CanvasBuffer& source, int destX, int destY, int width, int height) {

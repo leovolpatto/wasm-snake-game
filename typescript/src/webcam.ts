@@ -10,8 +10,9 @@ export class Webcam {
 
     Webcam.stream = await navigator.mediaDevices.getUserMedia({
       video: {
-        width: { exact: width },
+        frameRate: 80
       },
+      audio: false,
     });
     return Webcam.stream;
   }

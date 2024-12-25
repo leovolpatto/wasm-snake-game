@@ -89,14 +89,12 @@ void Game::init(int width, int height, int cellSize)
                           std::to_string(gameConfig.bufferDimension.width) + " h: " + std::to_string(gameConfig.bufferDimension.height);
     consoleLog(message2.c_str());
 
-    // Inicializa os componentes do jogo
     snakeEngine = std::make_unique<snake::GameEngine>(gameConfig);
     snakeRenderer = std::make_unique<snake::Renderer>(gameConfig);
     
-    // Define cores personalizadas para melhor visibilidade
-    gameConfig.gridColor = {80, 80, 80, 255};     // Grid mais escura
-    gameConfig.snakeColor = {0, 255, 0, 255};     // Snake verde brilhante
-    gameConfig.foodColor = {255, 0, 0, 255};      // Comida vermelha brilhante
+    gameConfig.gridColor = {80, 80, 80, 255}; 
+    gameConfig.snakeColor = {0, 255, 0, 255}; 
+    gameConfig.foodColor = {255, 0, 0, 255}; 
 }
 
 void Game::restart()
@@ -165,23 +163,19 @@ void Game::processSceneBuffer(float deltaTime)
         return;
     }
 
-    // Atualiza a lógica do jogo
     snakeEngine->update(deltaTime);
 
-    // Limpa o buffer principal
     auto* mainBuffer = sceneBuffer->getMainBuffer();
     if (mainBuffer) {
         mainBuffer->clear();
     }
 
-    // Renderiza o jogo
     snakeRenderer->render(*snakeEngine);
 
     // Copia o buffer do snake para o buffer principal
     if (mainBuffer) {
         const auto* snakeBuffer = snakeRenderer->getBuffer();
         if (snakeBuffer && snakeBuffer->getBuffer()) {
-            // Calcula as dimensões
             int targetWidth = snakeBuffer->getWidth();
             int targetHeight = snakeBuffer->getHeight();
             
@@ -207,7 +201,6 @@ void Game::processWebcamBuffer(float deltaTime)
         return;
     }
 
-    // Limpa o buffer de vídeo antes de copiar
     videoBuffer->clear();
 
     // Copia apenas uma vez o conteúdo do webcamBuffer para o videoBuffer
@@ -240,21 +233,19 @@ void Game::processWebcamBuffer(float deltaTime)
 
 void Game::processVideoBuffer(float deltaTime)
 {
-    static float totalTime = 0.0f; // Acumula o tempo total
-    totalTime += deltaTime;        // Adiciona o tempo desde o último frame
+    static float totalTime = 0.0f;
+    totalTime += deltaTime; // Adiciona o tempo desde o último frame
 
     PixelValue *buffer = videoBuffer->getBufferWritable();
     int width = videoBuffer->getWidth();
     int height = videoBuffer->getHeight();
 
-    // Exemplo: Efeito de onda que se move com o tempo
     for (int y = 0; y < height; y++)
     {
         for (int x = 0; x < width; x++)
         {
             int idx = (y * width + x) * 4;
 
-            // Usa o tempo para criar um efeito de onda
             float wave = sin(x * 0.1f + totalTime * 2.0f) * 128 + 128;
 
             buffer[idx] = buffer[idx] - static_cast<PixelValue>(wave);         // R
