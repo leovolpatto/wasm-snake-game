@@ -1,12 +1,13 @@
 #pragma once
+#include <memory>
+#include <stdexcept>
+#include <functional>
 #include "types.hpp"
 #include "snake.hpp"
 #include "food.hpp"
 #include "config.hpp"
-#include <memory>
-#include <stdexcept>
-#include <functional>
-#include "../js/helpers.hpp"
+#include "js/helpers.hpp"
+#include "wasm/canvasBuffer.hpp"
 
 namespace snake
 {
@@ -21,13 +22,30 @@ namespace snake
             Score score_;
             float moveTimer_;
             float currentSpeed_;
+            std::optional<std::reference_wrapper<const CanvasBuffer>> webcamBuffer_;
+
+            void eatFood(){
+                score_++;
+                consoleLog("eating...");
+
+                const CanvasBuffer& wcBuffer = webcamBuffer_.value();
+                const PixelValue* srcBuffer = wcBuffer.getBuffer();
+
+                std::unique_ptr<CanvasBuffer> thumbBuffer = std::make_unique<CanvasBuffer>(wcBuffer.getWidth(), wcBuffer.getHeight());
+                PixelValue* dstBuffer = thumbBuffer->getBufferWritable();
+                
+                int bufferSize = wcBuffer.getBufferSize();
+                std::memcpy(dstBuffer, srcBuffer, bufferSize * sizeof(PixelValue));
+
+                snake_->grow(std::move(thumbBuffer));
+                currentSpeed_ += config_.speedIncrease;
+            }
 
             void handleFoodCollision()
             {
-                score_++;
-                snake_->grow();
-                currentSpeed_ += config_.speedIncrease;
+                eatFood();
 
+                consoleLog("food collision ok");
                 // Try to find a new position for food that's not on the snake
                 size_t attempts = 0;
                 const size_t maxAttempts = 100; // Prevent infinite loop
@@ -47,8 +65,13 @@ namespace snake
 
             bool isPositionOnSnake(const GridPosition &pos) const
             {
-                const auto &body = snake_->getBody();
-                return std::find(body.begin(), body.end(), pos) != body.end();
+                const auto &body = snake_->getBodySegments();
+                //return std::find(body.begin(), body.end(), pos) != body.end();
+
+                return std::any_of(body.begin(), body.end(), 
+                                [&pos](const auto& segment) { 
+                                    return segment.position == pos; 
+                                });                
             }
 
         public:
@@ -58,6 +81,10 @@ namespace snake
                 : config_(config), rng_(), state_(GameState::Ready), score_(0), moveTimer_(0), currentSpeed_(config.initialSpeed)
             {
                 reset();
+            }
+
+            void setWebcamBuffer(const CanvasBuffer &buffer){
+                this->webcamBuffer_ = std::ref(buffer);
             }
 
             void update(float deltaTime)
@@ -82,9 +109,8 @@ namespace snake
                         return;
                     }
 
-                    if (snake_->getBody().front() == food_->getPosition())
+                    if (snake_->getBodySegments().front().position == food_->getPosition())
                     {
-                        consoleLog("Collision");
                         handleFoodCollision();
                     }
                 }

@@ -1,8 +1,8 @@
 #pragma once
-#include "game_engine.hpp"
-#include "../wasm/canvasBuffer.hpp"
 #include <memory>
-#include "../js/helpers.hpp"
+#include "game_engine.hpp"
+#include "wasm/canvasBuffer.hpp"
+#include "js/helpers.hpp"
 
 namespace snake
 {
@@ -22,7 +22,6 @@ namespace snake
                     config.bufferDimension.height / config.dimensions.rows
                 );
                 
-                // Cria o buffer com o tamanho calculado
                 buffer_ = std::make_unique<CanvasBuffer>(
                     config.dimensions.columns * cellSize_,
                     config.dimensions.rows * cellSize_
@@ -91,14 +90,27 @@ namespace snake
             {
                 const auto &pos = food.getPosition();
                 const auto &color = config_.foodColor;
+
+                const int x = pos.x * cellSize_ + 1; // +1 para não sobrepor a grid
+                const int y = pos.y * cellSize_ + 1;
+                const int width = cellSize_ - 1; // -1 para não sobrepor a grid
+                const int height = cellSize_ - 1;                
                 
                 buffer_->fillRect(
-                    pos.x * cellSize_ + 1,  // +1 para não sobrepor a grid
-                    pos.y * cellSize_ + 1,
-                    cellSize_ - 2,          // -2 para não sobrepor a grid
-                    cellSize_ - 2,
+                    x,
+                    y,
+                    width,
+                    height,
                     color.r, color.g, color.b, color.a
                 );
+                
+                const CanvasBuffer& wcBuffer = webcamBuffer_.value();
+                buffer_->copyRect(
+                    wcBuffer,
+                    x + 4, y + 4,
+                    width - 8,
+                    height - 8
+                );                
             }
 
             void drawSnake(const Snake &snake)
@@ -106,30 +118,37 @@ namespace snake
                 const auto &color = config_.snakeColor;
                 const CanvasBuffer& wcBuffer = webcamBuffer_.value();
 
-                for (const auto &segment : snake.getBody())
+                for (const auto &segment : snake.getBodySegments())
                 {
-                    // Coordenadas e dimensões do segmento
-                    int x = segment.x * cellSize_ + 1;
-                    int y = segment.y * cellSize_ + 1;
-                    int width = cellSize_ - 2;
-                    int height = cellSize_ - 2;
+                    const int x = segment.position.x * cellSize_ + 1;
+                    const int y = segment.position.y * cellSize_ + 1;
+                    const int width = cellSize_ - 2;
+                    const int height = cellSize_ - 2;
 
                     // Primeiro desenha o retângulo da cobra
                     buffer_->fillRect(
                         x, y, width, height,
                         color.r, color.g, color.b, color.a
                     );
+              
+                    if (const auto* segmentBuffer = segment.getSegmentFill()) {
+                        consoleLog("Copiando buffer do segmento");
+                        consoleLog(("Dimensões: " + std::to_string(segmentBuffer->getWidth()) + 
+                                "x" + std::to_string(segmentBuffer->getHeight())).c_str());
+                        
+                        buffer_->copyRect(*segmentBuffer, x, y, width, height);
+                    }
+                    else{
+                        buffer_->copyRect(
+                            wcBuffer,
+                            x, y,
+                            width,
+                            height
+                        );                        
+                    }
 
-                    // Depois copia a região correspondente do webcamBuffer
+                    buffer_->copyRect(*segmentBuffer, x, y, width, height);
                     
-                    buffer_->copyRect(
-                        wcBuffer,    // buffer fonte
-                        x, y,        // posição destino
-                        width,       // largura
-                        height      // altura
-                    );
-                    
-
                     /*
                     buffer_->blendRect(
                         wcBuffer,
