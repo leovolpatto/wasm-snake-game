@@ -59,12 +59,17 @@ FUNCTIONS_STRING="${FUNCTIONS_STRING%,}]"
 emcc ${SOURCE_FILES[@]} \
     -I./include \
     -o $OUTPUT_DIR/$OUTPUT_FILE \
-    -gsource-map \
+    -gsource-map -g4 \
     -s WASM=1 \
     -s EXPORTED_FUNCTIONS="$FUNCTIONS_STRING" \
     -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap']" \
     -s ENVIRONMENT='web' \
-    -O3
+    -s ASSERTIONS=2 \
+    -s SAFE_HEAP=1 \
+    -s STACK_OVERFLOW_CHECK=2 \
+    -s DEMANGLE_SUPPORT=1 -O3 --source-map-base="/"
+    #-O0 \
+   
 
 # Verifica se a compilação foi bem sucedida
 if [ $? -eq 0 ]; then

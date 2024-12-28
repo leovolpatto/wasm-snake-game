@@ -1,0 +1,52 @@
+$ tree
+.
+├── build.sh
+├── env.sh
+├── include
+│   ├── core
+│   │   ├── point.hpp
+│   │   └── types.hpp
+│   ├── js
+│   │   └── helpers.hpp
+│   ├── movement
+│   │   ├── circular.hpp
+│   │   ├── linear.hpp
+│   │   └── movement.hpp
+│   ├── objects
+│   │   ├── attributes
+│   │   │   └── sizeble.hpp
+│   │   ├── game.bkp
+│   │   ├── game.hpp
+│   │   └── square.hpp
+│   ├── pixel
+│   │   ├── matrix.hpp
+│   │   └── pixel.hpp
+│   ├── scene
+│   │   ├── sceneBuffer.hpp
+│   │   └── sceneObject.hpp
+│   ├── snake
+│   │   ├── config.hpp
+│   │   ├── food.hpp
+│   │   ├── game_engine.hpp
+│   │   ├── random_generator.hpp
+│   │   ├── renderer.hpp
+│   │   ├── snake.hpp
+│   │   └── types.hpp
+│   └── wasm
+│       ├── bindings.hpp
+│       └── canvasBuffer.hpp
+└── src
+    ├── js
+    │   └── helpers.cpp
+    ├── main.cpp
+    ├── movement
+    │   ├── circular.cpp
+    │   └── linear.cpp
+    ├── objects
+    │   └── game.cpp
+    ├── scene
+    │   ├── sceneBuffer.cpp
+    │   └── sceneObject.cpp
+    └── wasm
+        ├── bindings.cpp
+        └── canvasBuffer.cpp

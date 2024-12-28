@@ -69,7 +69,6 @@ void Game::initSceneBuffer(int width, int height)
     consoleLog(message.c_str());
 
     snakeRenderer->setWebcamBuffer(*webcamBuffer);
-    snakeEngine->setWebcamBuffer(*webcamBuffer);
 }
 
 void Game::init(int width, int height, int cellSize)
