@@ -146,7 +146,6 @@
             // Para números de ponto flutuante
           };
           this.wasmModule?._init();
-          this.wasmModule._initialize();
           console.log("WASM module initialized");
           resolve();
         };
@@ -295,9 +294,9 @@
         this.canvasRawVideo.height
       );
       this.wasm.wasmModule?._initSceneBuffer(
-        900,
+        1200,
         //this.canvasScene.width,
-        500
+        800
         //this.canvasScene.height
       );
     }
@@ -331,6 +330,7 @@
     async play() {
       try {
         await this.wasm.initWasm();
+        this.wasm.wasmModule?._initialize(1200, 800, 100);
         await this.init();
       } catch (error) {
         console.error("Error initializing game:", error);

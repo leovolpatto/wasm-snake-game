@@ -22,15 +22,10 @@ namespace snake
         float moveTimer_;
         float currentSpeed_;
 
-        void handleFoodCollision()
+        void placeFood()
         {
-            score_++;
-            snake_->grow();
-            currentSpeed_ += config_.speedIncrease;
-
-            // Try to find a new position for food that's not on the snake
             size_t attempts = 0;
-            const size_t maxAttempts = 100; // Prevent infinite loop
+            const size_t maxAttempts = 100;
 
             do
             {
@@ -40,15 +35,35 @@ namespace snake
 
             if (attempts >= maxAttempts)
             {
-                // Game is won - snake fills the entire grid
                 state_ = GameState::GameOver;
             }
+        }
+
+        void handleFoodCollision(const CanvasBuffer &webcamBuffer)
+        {
+            score_++;
+
+            auto segmentPixels = std::make_unique<CanvasBuffer>(webcamBuffer.getWidth(), webcamBuffer.getHeight());
+
+            if (segmentPixels)
+            {
+                segmentPixels->copyFrom(&webcamBuffer);
+                snake_->grow(std::move(segmentPixels));
+            }
+
+            currentSpeed_ += config_.speedIncrease;
+
+            placeFood();
         }
 
         bool isPositionOnSnake(const GridPosition &pos) const
         {
             const auto &body = snake_->getBody();
-            return std::find(body.begin(), body.end(), pos) != body.end();
+            return std::any_of(body.begin(), body.end(),
+                               [&pos](const auto &segment)
+                               {
+                                   return segment.position == pos;
+                               });
         }
 
     public:
@@ -60,7 +75,7 @@ namespace snake
             reset();
         }
 
-        void update(float deltaTime)
+        void update(float deltaTime, const CanvasBuffer &webcamBuffer)
         {
             if (state_ != GameState::Playing)
             {
@@ -77,15 +92,13 @@ namespace snake
 
                 if (snake_->checkCollision())
                 {
-                    consoleLog("GameOver");
                     state_ = GameState::GameOver;
                     return;
                 }
 
-                if (snake_->getBody().front() == food_->getPosition())
+                if (snake_->getHead().position == food_->getPosition())
                 {
-                    consoleLog("Collision");
-                    handleFoodCollision();
+                    handleFoodCollision(webcamBuffer);
                 }
             }
         }
@@ -103,8 +116,10 @@ namespace snake
             if (state_ == GameState::Playing)
             {
                 state_ = GameState::Paused;
+                return;
             }
-            else if (state_ == GameState::Paused)
+
+            if (state_ == GameState::Paused)
             {
                 state_ = GameState::Playing;
             }

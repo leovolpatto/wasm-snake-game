@@ -92,9 +92,6 @@ void Game::init(int width, int height, int cellSize)
     snakeEngine = std::make_unique<snake::GameEngine>(gameConfig);
     snakeRenderer = std::make_unique<snake::Renderer>(gameConfig);
     
-    gameConfig.gridColor = {80, 80, 80, 255}; 
-    gameConfig.snakeColor = {0, 255, 0, 255}; 
-    gameConfig.foodColor = {255, 0, 0, 255}; 
 }
 
 void Game::restart()
@@ -163,7 +160,7 @@ void Game::processSceneBuffer(float deltaTime)
         return;
     }
 
-    snakeEngine->update(deltaTime);
+    snakeEngine->update(deltaTime, *webcamBuffer);
 
     auto* mainBuffer = sceneBuffer->getMainBuffer();
     if (mainBuffer) {

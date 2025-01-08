@@ -83,8 +83,8 @@ export class Game implements IInputObserver {
     );
 
     this.wasm.wasmModule?._initSceneBuffer(
-      900, //this.canvasScene.width,
-      500 //this.canvasScene.height
+      1200, //this.canvasScene.width,
+      800 //this.canvasScene.height
     );
   }
 
@@ -126,6 +126,7 @@ export class Game implements IInputObserver {
   public async play(): Promise<void> {
     try {
       await this.wasm.initWasm();
+      this.wasm.wasmModule?._initialize(1200, 800, 100);
       await this.init();
     } catch (error) {
       console.error("Error initializing game:", error);

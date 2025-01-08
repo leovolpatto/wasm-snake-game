@@ -14,10 +14,10 @@ std::unique_ptr<Game> game = nullptr;
 extern "C"
 {
     EMSCRIPTEN_KEEPALIVE
-    void initialize()
+    void initialize(int width, int height, int cellSize)
     {
         game = std::make_unique<Game>();
-        game->init(900, 500, 50);
+        game->init(width, height, cellSize);
     }
 
     EMSCRIPTEN_KEEPALIVE

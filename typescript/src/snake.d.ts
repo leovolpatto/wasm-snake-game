@@ -11,7 +11,7 @@ declare global {
         _freeBuffer(): void;
         _getSceneBuffer():number;
 
-        _initialize():number;
+        _initialize(width: number, height: number, cellSize: number):number;
         
         _initVideoBuffers(width: number, height: number): void;
         _initSceneBuffer(width: number, height: number): void;

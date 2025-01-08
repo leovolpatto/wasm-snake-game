@@ -59,7 +59,7 @@ FUNCTIONS_STRING="${FUNCTIONS_STRING%,}]"
 emcc ${SOURCE_FILES[@]} \
     -I./include \
     -o $OUTPUT_DIR/$OUTPUT_FILE \
-    -gsource-map -g4 \
+    -gsource-map \
     -s WASM=1 \
     -s EXPORTED_FUNCTIONS="$FUNCTIONS_STRING" \
     -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap']" \
@@ -67,7 +67,7 @@ emcc ${SOURCE_FILES[@]} \
     -s ASSERTIONS=2 \
     -s SAFE_HEAP=1 \
     -s STACK_OVERFLOW_CHECK=2 \
-    -s DEMANGLE_SUPPORT=1 -O3 --source-map-base="/"
+    -O3 --source-map-base="/"
     #-O0 \
    
 

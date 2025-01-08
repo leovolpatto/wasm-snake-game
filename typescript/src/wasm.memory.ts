@@ -36,7 +36,6 @@ export class Wasm{
                 };
 
                 this.wasmModule?._init();
-                this.wasmModule._initialize();
 
                 console.log('WASM module initialized');
                 resolve();

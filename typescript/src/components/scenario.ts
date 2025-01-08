@@ -12,8 +12,8 @@ export class Scenario {
   private snakeCanvas!: Canvas;
   private foodCanvas!: Canvas;
   private wasm!: Wasm;
-  private readonly MAX_WIDTH = 900;
-  private readonly MAX_HEIGHT = 500;
+  private readonly MAX_WIDTH = 1000;
+  private readonly MAX_HEIGHT = 800;
 
   private bufferPtr: number = 0;
   private imageBuffer!: Uint8Array<ArrayBufferLike>;

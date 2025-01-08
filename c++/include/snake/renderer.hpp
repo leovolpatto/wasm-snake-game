@@ -1,8 +1,8 @@
 #pragma once
-#include "game_engine.hpp"
-#include "../wasm/canvasBuffer.hpp"
 #include <memory>
-#include "../js/helpers.hpp"
+#include "game_engine.hpp"
+#include "wasm/canvasBuffer.hpp"
+#include "js/helpers.hpp"
 
 namespace snake
 {
@@ -21,7 +21,6 @@ namespace snake
                 config.bufferDimension.width / config.dimensions.columns,
                 config.bufferDimension.height / config.dimensions.rows);
 
-            // Cria o buffer com o tamanho calculado
             buffer_ = std::make_unique<CanvasBuffer>(
                 config.dimensions.columns * cellSize_,
                 config.dimensions.rows * cellSize_);
@@ -53,11 +52,13 @@ namespace snake
         }
 
     private:
+        static constexpr float MIN_ALPHA = 0.2f;
+        static constexpr float MAX_ALPHA = 1.0f;
+
         void drawGrid()
         {
             const auto &color = config_.gridColor;
 
-            // Desenha linhas verticais
             for (GridSize x = 0; x <= config_.dimensions.columns; ++x)
             {
                 int pixelX = x * cellSize_;
@@ -69,7 +70,6 @@ namespace snake
                     color.r, color.g, color.b, color.a);
             }
 
-            // Desenha linhas horizontais
             for (GridSize y = 0; y <= config_.dimensions.rows; ++y)
             {
                 int pixelY = y * cellSize_;
@@ -86,52 +86,89 @@ namespace snake
         {
             const auto &pos = food.getPosition();
             const auto &color = config_.foodColor;
+            const CanvasBuffer &wcBuffer = webcamBuffer_.value();
+
+            const int x = pos.x * cellSize_;
+            const int y = pos.y * cellSize_;
+            const int width = cellSize_;
+            const int height = cellSize_;
 
             buffer_->fillRect(
-                pos.x * cellSize_ + 1, // +1 para não sobrepor a grid
-                pos.y * cellSize_ + 1,
-                cellSize_ - 2, // -2 para não sobrepor a grid
-                cellSize_ - 2,
+                x,
+                y,
+                width, height,
                 color.r, color.g, color.b, color.a);
+
+            buffer_->copyRect(
+                wcBuffer,
+                x + 5,
+                y + 5,
+                width - 9,
+                height - 9);
         }
+
+        
 
         void drawSnake(const Snake &snake)
         {
+            const auto &body = snake.getBody();
+            const size_t length = snake.getLength();
+
             const auto &color = config_.snakeColor;
             const CanvasBuffer &wcBuffer = webcamBuffer_.value();
 
-            for (const auto &segment : snake.getBody())
+            for (size_t i = 0; i < length; ++i)
             {
-                // Coordenadas e dimensões do segmento
-                int x = segment.x * cellSize_ + 1;
-                int y = segment.y * cellSize_ + 1;
-                int width = cellSize_ - 2;
-                int height = cellSize_ - 2;
+                const auto &segment = body[i];
+                int x = segment.position.x * cellSize_ + 1;
+                int y = segment.position.y * cellSize_ + 1;
+                int width = cellSize_ - 1;
+                int height = cellSize_ - 1;
 
-                // Primeiro desenha o retângulo da cobra
                 buffer_->fillRect(
                     x, y, width, height,
                     color.r, color.g, color.b, color.a);
 
-                // Depois copia a região correspondente do webcamBuffer
 
-                buffer_->copyRect(
-                    wcBuffer, // buffer fonte
-                    x, y,     // posição destino
-                    width,    // largura
-                    height    // altura
-                );
+                if (i == 0 && segment.pixels && segment.pixels->getBuffer()) {
+                    // Renderiza a cabeça
+                    buffer_->copyRect(
+                        *segment.pixels,
+                        x, y,
+                        width,
+                        height
+                    );
+                    continue;
+                }
 
                 /*
-                buffer_->blendRect(
-                    wcBuffer,
-                    x, y,        // posição destino
-                    x, y,        // posição origem
-                    width,       // largura
-                    height,      // altura
-                    0.5f        // fator de blend (0.0 a 1.0)
-                );
-                */
+                if (i == 0)
+                {
+                    buffer_->fillRect(
+                        x, y, width, height,
+                        80, 80, 80, 255);
+
+                    buffer_->copyRect(
+                        wcBuffer,// *this->snakeHeadTexture_ ,,
+                        x - 2, 
+                        y -2,
+                        width + 4 ,
+                        height + 4 );
+
+                    continue;
+                }*/
+
+                if (segment.pixels && segment.pixels->getBuffer())
+                {
+                    float alpha = MAX_ALPHA - ((MAX_ALPHA - MIN_ALPHA) * static_cast<float>(i) / static_cast<float>(length - 1));
+
+                    buffer_->blendRect(
+                        *segment.pixels,
+                        x, y,
+                        width,
+                        height,
+                        alpha);
+                }
             }
         }
     };
